@@ -1,0 +1,1127 @@
+\documentclass{article}
+
+\usepackage[colorlinks,linkcolor=blue]{hyperref} % hyberlink
+
+\usepackage{pgfplots} % which is based on tikz
+\pgfplotsset{width=8cm,compat=1.9} % config the width
+\usepgfplotslibrary{external} % which is used for build the picture outside then import them to avoid repeat building.
+\tikzexternalize % which is same as up
+
+\usepackage{tikz} % 
+\usetikzlibrary{positioning} %
+\usetikzlibrary {arrows.meta, automata, positioning, shadows, datavisualization.formats.functions} % use for topo graph
+\usetikzlibrary {mindmap} % use for mindmap
+
+\usepackage{xeCJK}
+  \xeCJKsetup{%
+    %PunctStyle=kaiming,
+    CJKspace=true,
+    % CJKmath=true,
+    CJKecglue={}%
+  }
+%\usepackage[UTF8]{ctex}
+
+% \setmainfont{Noto Serif}
+%\setCJKmainfont{gulim.ttf}
+%\setCJKsansfont{gulim.ttf}
+%\setCJKmonofont{gulim.ttf}
+%\setCJKmainfont{}
+
+% below specific to Chinese version
+\setCJKmainfont{Noto Serif CJK SC}
+\setCJKsansfont{Noto Serif CJK SC}
+\setCJKmonofont{Noto Serif CJK SC}
+\usepackage{indentfirst}
+\setlength{\parindent}{2em}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+\usepackage{listings}
+\usepackage{minted}
+% Remove this draft watermark for the final version
+% \usepackage{draftwatermark}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=2cm,right=2cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{comment}
+\usepackage{graphicx}
+\usepackage{IEEEtrantools}
+% \usepackage[hyphens]{url}
+% \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\usepackage{setspace}
+  \onehalfspacing
+  % \setstretch{1.25} % custom spacing
+
+\title{\href{https://equityswap.club/swap}{EquitySwap}——新一代全面领先的DEX}
+\author{Topo Labs}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{comment}
+
+Goals: 
+* Introduce the problems we are solving in web3
+* Introduce our approach and our solutions to reliability, scalability, and upgradeability while preserving decentralization
+* Differentiate our approach from others in the web3 space
+Provide the appropriate level of detail - especially for future work (more detail on areas we have more information and more directional on areas we still need to do research/eng)
+
+Terminology:
+* Nodes - full nodes or validators
+* Uppercase Internet
+* Aptos blockchain - do not use Aptos protocol
+* up-to-date, not up to date
+* Ledger state and ledger history
+* Avoid the word database in the context of blockchain
+* trade-offs not tradeoff
+* upgradeable, not upgradable
+* web3, not Web3 unless at the beginning of a sentence.
+* dApp is out-of-date, just applications are fine.
+* high throughput not high-throughput
+
+Formatting:
+* After end{itemize} or end{enumerate}, start the next sentence immediately so the indent is far to the left instead of indented
+
+\end{comment}
+
+% Someone needs to convert 'abstract' and 'figurename' to chinese below
+\renewcommand{\abstractname}{Abstract}
+\renewcommand{\figurename}{图}
+
+\begin{abstract}
+EquitySwap是Topo Labs在研究\href{https://equityswap.club/swap}{Web3应用落地}的时候发现：现有的DEX难以实现交易的完全去中心化，同时也不能满足不同初始体量项目的上市需求，特别是一些小体量项目的发展容易受到来自于DEX\textbf{AMM}模型本身的限制，当小体量项目上涨到高倍数之后，不仅流动性不足以支撑项目的正常交易，而且在市值不大的时候已经触及到天花板，难以继续健康发展而提出的新型DEX。有足够多的人添加流动性才可以解决上述问题，但由于常规DEX添加流动性的无偿损失太高，用户大多也不会积极参与。
+
+\textbf{Topo Labs} 结合现实商业应用通过不断提炼优化数学模型，推出了两套DEX：一套适用于\textbf{新上线项目}的$3-in-1$ \footnote{为了便于项目方和用户直接选择，提炼了三个能覆盖所有初始体量项目的做市商公式}DEX \textbf{EquitySwap Air}，可以简单类比于纽交所、纳斯达克和美国交易所，另一套适用于\textbf{已上线项目}的$3-in-1$ DEX \textbf{EquitySwap Pro}。
+
+\textbf{EquitySwap Air}是一个创新的去中心化交易平台，通过提炼出对应的数学模型并不断优化，来为项目提供比肩甚至超过中心化交易所的交易深度和无上限的发展空间，让项目摆脱对中心化交易所的依赖，实现项目交易的完全去中心化。
+
+相较于传统去中心化交易平台（如Uniswap），EquitySwap具有以下显著优势：交易深度能在交易过程中自动提高，当项目市值上涨之后，其交易深度可以比\textbf{Uniswap}高数十到数百倍；无常损失大幅降低，促使更多人添加流动性，提高EquitySwap和生态公链的TVL，更容易在对应的赛道拔得头筹。
+
+本文将着重阐述 \textbf{EquitySwap Air \& Pro} 的一些优势技术指标，以及在商业活动中所带来的重要价值。
+
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% % Math Syntax Test
+% \begin{equation} \label{eq_name}
+% \begin{split}
+% A & = \frac{\pi r^2}{2} \\
+%  & = \frac{1}{2} \pi r^2
+% \end{split}
+% \end{equation}
+
+% The beautiful equation \ref{eq_name} is known as above.
+
+%--------------------------------------------------------
+
+% -------------------------------------------------1
+% \begin{tikzpicture}
+% \begin{axis}[
+%    title=Example using the mesh parameter,
+%    hide axis,
+%    colormap/cool,
+% ]
+% \addplot3[
+%    mesh,
+%    samples=50,
+%    domain=-8:8,
+% ]
+% {sin(deg(sqrt(x^2+y^2)))/sqrt(x^2+y^2)};
+% \addlegendentry{\(\frac{sin(r)}{r}\)}
+% \end{axis}
+% \end{tikzpicture}
+
+% -------------------------------------------------2
+% \begin{tikzpicture}
+% \begin{axis}
+% \addplot[color=red]{exp(x)};
+% \end{axis}
+% \end{tikzpicture}
+% %Here ends the 2D plot
+% \hskip 5pt
+% %Here begins the 3D plot
+% \begin{tikzpicture}
+% \begin{axis}
+% \addplot3[
+%     surf,
+% ]
+% {exp(-x^2-y^2)*x};
+% \end{axis}
+% \end{tikzpicture}
+
+% -------------------------------------------------3
+% \begin{tikzpicture}
+% \begin{axis}[
+%     axis lines = left,
+%     xlabel = \(x\),
+%     ylabel = {\(f(x)\)},
+% ]
+% %Below the red parabola is defined
+% \addplot [
+%     domain=-10:10, 
+%     samples=100, 
+%     color=red,
+% ]
+% {x^2 - 2*x - 1};
+% \addlegendentry{\(x^2 - 2x - 1\)}
+% %Here the blue parabola is defined
+% \addplot [
+%     domain=-10:10, 
+%     samples=100, 
+%     color=blue,
+%     ]
+%     {x^2 + 2*x + 1};
+% \addlegendentry{\(x^2 + 2x + 1\)}
+
+% \end{axis}
+% \end{tikzpicture}
+
+% -------------------------------------------------3.5
+% \begin{tikzpicture}
+
+% \tikz \datavisualization data group {function classes} = {
+%   data [set=log, format=function] {
+%     var x : interval [0.2:2.5];
+%     func y = ln(\value x);
+%   }
+%   data [set=lin, format=function] {
+%     var x : interval [-2:2.5];
+%     func y = 0.5*\value x;
+%   }
+%   data [set=squared, format=function] {
+%     var x : interval [-1.5:1.5];
+%     func y = \value x*\value x;
+%   }
+%   data [set=exp, format=function] {
+%     var x : interval [-2.5:1];
+%     func y = exp(\value x);
+%   }
+% };
+
+% \tikz \datavisualization [
+%   school book axes,
+%   x axis={label=$x$},
+%   visualize as smooth line/.list={log, lin, squared, exp},
+%   every data set label/.append style={text colored},
+%   log= {pin in data={text'=$\log x$, when=y is -1}},
+%   lin= {pin in data={text=$x/2$, when=x is 2,
+%                         pin length=1ex}},
+%   squared={pin in data={text=$x^2$, when=x is 1.1,
+%                         pin angle=230}},
+%   exp= {label in data={text=$e^x$, when=x is -2}},
+%   style sheet=vary hue]
+% data group {function classes};
+% \end{tikzpicture}
+
+% -------------------------------------------------4
+% \begin{tikzpicture}
+% \begin{axis}
+% \addplot3[
+%     surf,
+% ] 
+% coordinates {
+% (0,0,0) (0,1,0) (0,2,0)
+
+% (1,0,0) (1,1,0.6) (1,2,0.7)
+
+% (2,0,0) (2,1,0.7) (2,2,1.8)
+% };
+% \end{axis}
+% \end{tikzpicture}
+
+% -------------------------------------------------5
+% \begin{tikzpicture}[
+% roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=7mm},
+% squarednode/.style={rectangle, draw=red!60, fill=red!5, very thick, minimum size=5mm},
+% ]
+% %Nodes
+% \node[squarednode]      (maintopic)                              {2};
+% \node[roundnode]        (uppercircle)       [above=of maintopic] {1};
+% \node[squarednode]      (rightsquare)       [right=of maintopic] {3};
+% \node[roundnode]        (lowercircle)       [below=of maintopic] {4};
+
+% %Lines
+% \draw[->] (uppercircle.south) -- (maintopic.north);
+% \draw[->] (maintopic.east) -- (rightsquare.west);
+% \draw[->] (rightsquare.south) .. controls +(down:7mm) and +(right:7mm) .. (lowercircle.east);
+% \end{tikzpicture}
+
+% -------------------------------------------------6
+% \begin{tikzpicture}[->,>={Stealth[round]},shorten >=1pt,auto,node distance=2.8cm,on grid,semithick,every 
+%     state/.style={fill=red,draw=none,circular drop shadow,text=white}]
+
+%   \node[initial,state] (A)                    {$q_a$};
+%   \node[state]         (B) [above right=of A] {$q_b$};
+%   \node[state]         (D) [below right=of A] {$q_d$};
+%   \node[state]         (C) [below right=of B] {$q_c$};
+%   \node[state]         (E) [below=of D]       {$q_e$};
+
+%   \path (A) edge              node {0,1,L1} (B)
+%             edge              node {1,1,R} (C)
+%         (B) edge [loop above] node {1,1,L} (B)
+%             edge              node {0,1,L} (C)
+%         (C) edge              node {0,1,L} (D)
+%             edge [bend left]  node {1,0,R} (E)
+%         (D) edge [loop below] node {1,1,R} (D)
+%             edge              node {0,1,R} (A)
+%         (E) edge [bend left]  node {1,0,R} (A);
+
+%    \node [right=1cm,text width=8cm] at (C)
+%    {
+%      The current candidate for the busy beaver for five states. It is
+%      presumed that this Turing machine writes a maximum number of
+%      $1$'s before halting among all Turing machines with five states
+%      and the tape alphabet $\{0, 1\}$. Proving this conjecture is an
+%      open research problem.
+%    };
+% \end{tikzpicture}
+
+% -------------------------------------------------7
+% \begin{tikzpicture}
+%   \path[mindmap,concept color=black,text=white]
+%     node[concept] {Computer Science}
+%     [clockwise from=0]
+%     % note that `sibling angle' can only be defined in
+%     % `level 1 concept/.append style={}'
+%     child[concept color=green!50!black] {
+%       node[concept] {practical}
+%       [clockwise from=90]
+%       child { node[concept] {algorithms} }
+%       child { node[concept] {data structures} }
+%       child { node[concept] {pro\-gramming languages} }
+%       child { node[concept] {software engineer\-ing} }
+%     }
+%     % note that the `concept color' is passed to the `child'(!)
+%     child[concept color=blue] {
+%       node[concept] {applied}
+%       [clockwise from=-30]
+%       child { node[concept] {databases} }
+%       child { node[concept] {WWW} }
+%     }
+%     child[concept color=red] { node[concept] {technical} }
+%     child[concept color=orange] { node[concept] {theoretical} };
+% \end{tikzpicture}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{数学模型}
+
+\textbf{EquitySwap}是基于\emph{AMM}（自动做市商）协议的。即\emph{Liquidity Provider}将交易对$(TokenA, TokenB)$存入\emph{流动性池}中，该Swap基于某个确定的数学模型，来让 $TokenA$ 和 $TokenB$ 的\emph{数量}符合某种确定的关系\footnote{符合$AMM$协议的Swap，都是约定的交易对$(TokenA, TokenB)$中两种Token的数量关系（而非价格关系），价格关系只是通过数量关系来间接体现的}。
+
+为了承载\textbf{PeopleEquity}整个生态协议，满足不同初创项目\textbf{上市}发展的需求，\emph{EquitySwap}拥有对\textbf{用户}、\textbf{项目方}、\textbf{做市商}多方有利的技术优势。
+
+为了适应\emph{项目}的不同初始体量，我们针对\emph{AMM}的恒定乘积公式，优化了3种数学模型，以保障其更优的市场表现。
+
+下面将着重阐述\textbf{EquitySwap Air}的一些优势技术指标：
+
+\begin{itemize}
+  \item 更少的无常损失。
+  \item 更大的交易深度。
+  \item 更多的交易收益。
+\end{itemize}
+
+\subsection{模型提炼}
+
+\subsubsection*{EquitySwap Air}
+
+为了初创项目拥有更好的市场表现，\textbf{Topo Labs} 推出 \textbf{EquitySwap Air} 通过自动加大的交易深度，更小的无常损失，更多的交易收益来保证项目及使用者更佳的利益。
+
+\emph{WhaleSwap} 的数学模型（Uniswap、PancakeSwap等知名DEX所采用）：
+\begin{equation} \label{whale_swap}
+\begin{split}
+X * Y = K
+\end{split}
+\end{equation}
+
+\emph{ElephantSwap} 的数学模型：
+\begin{equation} \label{elephant_swap}
+\begin{split}
+X^2 * Y = K
+\end{split}
+\end{equation}
+
+\emph{AntSwap} 的数学模型：
+\begin{equation} \label{ant_swap}
+\begin{split}
+X^4 * Y = K
+\end{split}
+\end{equation}
+
+\subsubsection*{EquitySwap Pro}
+
+同时对于主流币或者在其它DEX中添加过流动性的项目，\textbf{Topo Labs} 推出 \textbf{EquitySwap Pro}，其包含了\textbf{MoonSwap}、\textbf{EarthSwap}、\textbf{SunSwap}。通过极低的 \textbf{无常损失} 来确保用户既能享受代币上涨的红利，又能拿到年化 $36.5\% ~ 100\%$ 的交易费率。
+
+\emph{MoonSwap} 的数学模型：
+\begin{equation} \label{moon_swap}
+\begin{split}
+X^8 * Y = K
+\end{split}
+\end{equation}
+
+\emph{EarthSwap} 的数学模型：
+\begin{equation} \label{earth_swap}
+\begin{split}
+X^{16} * Y = K
+\end{split}
+\end{equation}
+
+\emph{SunSwap} 的数学模型：
+\begin{equation} \label{sun_swap}
+\begin{split}
+X^{32} * Y = K
+\end{split}
+\end{equation}
+
+
+
+\subsection{价格计算方式}
+
+在基于\emph{AMM} 的Swap中，某种$TokenA$的价格是用另一种$TokenB$来计价的。正如这里的 $PE$ 用 $USDT$ 来计价，即每个$PE$ 值多少个 $USDT$。
+
+\subsubsection*{价格公式的推导}
+基于\textbf{AMM}模型的DEX，假设其数学模型为 $X^n * Y = K$，即$Y = X^(-n) * K$，对其两边求导，有$Y' = (-n) * \frac{1}{X^(n+1)} * K$，将$(X_0, Y_0)$代入，即有$X = X_0$，$K = X_0^n * Y$，因此有
+\begin{equation} \label{price_calu}
+\begin{split}
+Y' = n * \frac{Y_0}{X_0}
+\end{split}
+\end{equation}
+
+当 $PE$ 价格波动时，$PE$ 的 \textbf{价格} 计算公式如下。
+
+由公式\ref{whale_swap}可知 \textcolor{red}{Uniswap} 中的价格（初始添加$(PE, USDT)$的价值比例为$1:1$）：
+\begin{equation} \label{uniswap_price}
+\begin{split}
+P = \frac{Y}{X} = \frac{K}{X^2}
+\end{split}
+\end{equation}
+
+由公式\ref{ant_swap}可知 \textcolor{black}{AntSwap} 中的价格（初始添加$(PE, USDT)$的价值比例为$4:1$）：
+\begin{equation} \label{antswap_price}
+\begin{split}
+P = \frac{4 * Y}{X} = \frac{4 * K}{X^5}
+\end{split}
+\end{equation}
+
+因为某种 Token（$PE$）是以另一种 Token（$USDT$）来计价的，因此 $USDT$ 的计价方式当然就是用$USDT$本身。
+
+
+假定Uniswap中添加的流动性为 $(X_1, Y_1)$，AntSwap中添加的流动性为 $(X_4, Y_4)$，其中$X_1$和$X_4$是同种代币（且数量关系为$X_4$ = $4X_1$ = $4X_0$），$Y_1$和$Y_4$是同种代币（假设为数量相同的USDT，为$Y_0$），此时两种流动性池中的X的价格$P$是相等的。
+
+对于Uniswap，易得
+\begin{equation*}
+\begin{split}
+P = \frac{K}{X^2} = \frac{Y_1^2}{K} = (\frac{Y_1}{Y_0})^2 = (\frac{X_0}{X_1})^2
+\end{split}
+\end{equation*}
+
+对于AntSwap，再根据公式\ref{antswap_price} 和\ref{uniswap_price} 则有
+\begin{equation*}
+\begin{split}
+P = \frac{4 * K}{X^5} = \frac{4 * Y_4^\frac{5}{4}}{\sqrt[4]{K}} = (\frac{Y_4}{Y_1})^\frac{5}{4} = (\frac{4X_0}{X_4})^5
+\end{split}
+\end{equation*}
+
+因为 $P$ 相等，因此有
+
+\begin{equation*}
+\begin{split}
+P = (\frac{Y_1}{Y_0})^2 = (\frac{Y_4}{Y_0})^\frac{5}{4}
+\end{split}
+\end{equation*}
+
+\begin{equation*}
+\begin{split}
+P = (\frac{X_0}{X_1})^2 = (\frac{4X_0}{X_4})^5
+\end{split}
+\end{equation*}
+
+据此可得
+
+\begin{equation} \label{uniswap_antswap_price_relative_y}
+\begin{split}
+\frac{Y_4}{Y_1} = P^\frac{3}{10}
+\end{split}
+\end{equation}
+
+\begin{equation} \label{uniswap_antswap_price_relative_x}
+\begin{split}
+\frac{X_4}{X_1} = 4*P^\frac{3}{10}
+\end{split}
+\end{equation}
+
+\subsection{数量计算方式}
+
+\subsubsection*{初始添加流动性的比例}
+
+由公式\ref{price_calu}可知，初始添加流动性$(TokenA, TokenB)$时的\textbf{代币价值比}\footnote{TokenB常常是诸如USDT,BTC等定价币}应该为 $n:1$。对Uniswap而言即是$1:1$，对AntSwap而言既是$4:1$，其它Swap以此类推。
+
+\subsubsection*{初始选择EquitySwap Air中不同Swap的机制}
+
+经过\textbf{Topo Labs}大量的数据模拟，并结合 \textbf{EquitySwap Air} 三种Swap底层的数学模型的特性，给出了适用于不同初始体量的项目\textbf{上市}\footnote{这样项目能在去中心化的环境中不断发展壮大并拥有几乎无限的发展空间} 的建议如下。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{./img/choose.png}
+\caption{\label{fig}不同初始体量的项目如何选择Swap的参考.}
+\end{figure}
+
+
+流动性池中的两种代币会随着价格的变动，而出现数量上各自的变化。该数量和对应的价格的计算方式如下。
+
+\textcolor{red}{Uniswap} 中 $PE$ 的数量（根据公式\ref{uniswap_price}）
+\begin{equation} \label{uniswap_count_eth}
+\begin{split}
+X = \sqrt{\frac{K}{P}}
+\end{split}
+\end{equation}
+
+\textcolor{red}{Uniswap} 中 $USDT$ 的数量（根据公式\ref{uniswap_price}）
+\begin{equation} \label{uniswap_count_usdt}
+\begin{split}
+Y = \sqrt{K * P}
+\end{split}
+\end{equation}
+
+
+\textcolor{black}{AntSwap} 中 $PE$ 的数量（根据公式\ref{antswap_price}）
+\begin{equation} \label{antswap_count_eth}
+\begin{split}
+X = \sqrt[5]{\frac{4*K}{P}}
+\end{split}
+\end{equation}
+
+\textcolor{black}{AntSwap} 中 $USDT$ 的数量（根据公式\ref{antswap_price}）
+\begin{equation} \label{antswap_count_usdt}
+\begin{split}
+Y = \sqrt[5]{\frac{K * P^4}{4^4}}
+\end{split}
+\end{equation}
+
+以下均以 AntSwap 为例（对比常规Swap所采用的数学模型），且均已添加$(X, Y)$ = $(PE, USDT)$ 流动性到流动性池中。
+
+\section{技术特性——EquitySwap Air}
+
+\subsection{更少的无常损失}
+
+所谓无常损失，即$Liquidity Provider$ 添加流动性 $(TokenA, TokenB)$之后，当该交易对中的某种代币（或者两种代币）价格上升后，再移除流动性，得到的收益比直接持有Token得到的收益要低一些，低的这一部分就是无常损失。
+
+当 $PE$ 价格上涨时。假设用 $n$ 表示某个LP添加流动性所占整个流动性池的比例；用 $r$ 表示价格上涨的比率。
+
+下面将对比在 \textbf{Uniswap} 和 \textbf{AntSwap} 中 \textbf{持有Token} 和 \textbf{添加流动性} 两种方式下收益的差异。
+
+\subsubsection{Uniswap}
+
+% \subsubsection*{持有Token}
+
+% 当 $PE$ (本文中将假定添加流动性的交易对为$(PE, USDT)$)价格上涨时，根据公式\ref{uniswap_count_eth}可知，此时\textbf{流动性池}中 $PE$ 的数量是
+% \begin{equation*}
+% \begin{split}
+% X = \sqrt{\frac{K}{P}}
+% \end{split}
+% \end{equation*}
+
+% 则该 \textbf{Liquidity Provider} 对应比例的数量为
+% \begin{equation*}
+% \begin{split}
+% X = n * \sqrt{\frac{K}{P}}
+% \end{split}
+% \end{equation*}
+
+% 这部分 $PE$ 的价值为
+% \begin{equation} \label{uniswap_hold_value_eth}
+% \begin{split}
+% X = n * \sqrt{\frac{K}{P}} * P * (r + 1) = n * \sqrt{K * P} * (r + 1)
+% \end{split}
+% \end{equation}
+
+% 同理，根据公式\ref{uniswap_count_usdt}，可知此时流动性池中的 $USDT$ 的数量是
+% \begin{equation*}
+% \begin{split}
+% Y = \sqrt{K * P}
+% \end{split}
+% \end{equation*}
+
+% 则该 \textbf{Liquidity Provider} 对应比例的数量为
+% \begin{equation*}
+% \begin{split}
+% X = n * \sqrt{K * P}
+% \end{split}
+% \end{equation*}
+
+% 这部分 $USDT$ 的价值为
+% \begin{equation} \label{uniswap_hold_value_usdt}
+% \begin{split}
+% n * \sqrt{K * P}
+% \end{split}
+% \end{equation}
+
+% 因此，假如该 \textbf{Liquidity Provider} 选择 \textbf{持有Token}，那么在 $PE$ 价格上涨 $r$ 之后，两种Token对应的总价值为（公式\ref{uniswap_hold_value_eth} + 公式\ref{uniswap_hold_value_usdt}）
+
+% \begin{equation} \label{uniswap_hold_value}
+% \begin{split}
+% value = n * \sqrt{K * P} * (r + 1) + n * \sqrt{K * P} = n * \sqrt{K * P} * (r + 2)
+% \end{split}
+% \end{equation}
+
+
+% \subsubsection*{添加流动性}
+
+% 当\textbf{Liquidity Provider}初始时向流动性池中以 $1:1$ 的价值比例添加 $(PE, USDT)$。当 $PE$ 价格上涨时，即价格是
+% \begin{equation*}
+% \begin{split}
+% P *(r + 1)
+% \end{split}
+% \end{equation*}
+
+
+% 根据公式\ref{uniswap_count_eth}可知，此时\textbf{流动性池}中 $PE$ 的数量是
+% \begin{equation*}
+% \begin{split}
+% X = \sqrt{\frac{K}{P * (r + 1)}}
+% \end{split}
+% \end{equation*}
+
+% 则该 \textbf{Liquidity Provider} 对应比例的数量为
+% \begin{equation*}
+% \begin{split}
+% X = n * \sqrt{\frac{K}{P * (r + 1)}}
+% \end{split}
+% \end{equation*}
+
+% 这部分 $PE$ 的价值为
+% \begin{equation} \label{uniswap_exposit_value_eth}
+% \begin{split}
+% value = n * \sqrt{\frac{K}{P * (r + 1)}} * P * (r + 1) = n * \sqrt{K * P * (r + 1)}
+% \end{split}
+% \end{equation}
+
+% 同理，根据公式\ref{uniswap_count_usdt}，可知此时流动性池中的 $USDT$ 的数量是
+% \begin{equation*}
+% \begin{split}
+% Y = \sqrt{K * P * (r + 1)}
+% \end{split}
+% \end{equation*}
+
+% 则该 \textbf{Liquidity Provider} 对应比例的数量以及价值为
+% \begin{equation} \label{uniswap_exposit_value_usdt}
+% \begin{split}
+% value = n * \sqrt{K * P * (r + 1)}
+% \end{split}
+% \end{equation}
+
+
+% 因此，假如该 \textbf{Liquidity Provider} 选择 \textbf{添加流动性}，那么在 $PE$ 价格上涨 $r$ 之后，两种Token对应的总价值为（公式\ref{uniswap_exposit_value_eth} + 公式\ref{uniswap_exposit_value_usdt}）
+
+% \begin{equation} \label{uniswap_exposit_value}
+% \begin{split}
+% n * \sqrt{K * P * (r + 1)} + n * \sqrt{K * P * (r + 1)} = 2n * \sqrt{K * P * (r + 1)}
+% \end{split}
+% \end{equation}
+
+% 综上，由公式 \ref{uniswap_hold_value} - 公式\ref{uniswap_exposit_value} 可得 \textbf{无常损失} 为
+
+% \begin{equation} \label{uniswap_impermanent_loss}
+% \begin{split}
+% loss = n * \sqrt{K * P} * (r + 1) + n * \sqrt{K * P} - 2n * \sqrt{K * P * (r + 1)} 
+% = n * \sqrt{K * P} * (r + 2 - 2 * \sqrt{r + 1})
+% \end{split}
+% \end{equation}
+
+% 即 \textbf{无常损失率} 为（公式\ref{uniswap_impermanent_loss} / 公式\ref{uniswap_hold_value}）
+% \begin{equation} \label{uniswap_impermanent_loss_rate}
+% \begin{split}
+% f(r) = \frac{n * \sqrt{K * P} * (r + 2 - 2 * \sqrt{r + 1})}{n * \sqrt{K * P} * (r + 2)} = \frac{r + 2 - 2 * \sqrt{r + 1}}{r + 2}
+% \end{split}
+% \end{equation}
+
+根据\href{https://arxiv.org/abs/1801.03998}{《Uniswap: A Protocol for Decentralized Exchange on Ethereum》}可推导出Uniswap的\textbf{无常损失率}是
+
+\begin{equation} \label{uniswap_impermanent_loss_rate}
+\begin{split}
+f(r) = \frac{r + 2 - 2 * \sqrt{r + 1}}{r + 2}
+\end{split}
+\end{equation}
+
+
+\subsubsection{AntSwap}
+
+\subsubsection*{持有Token}
+当 $PE$ (本文中将假定添加流动性的交易对为$(PE, USDT)$)价格上涨时，根据公式\ref{antswap_count_eth}可知，此时\textbf{流动性池}中 $PE$ 的数量是
+\begin{equation*}
+\begin{split}
+X = \sqrt[5]{\frac{4*K}{P}}
+\end{split}
+\end{equation*}
+
+则该 \textbf{Liquidity Provider} 对应比例的数量为
+\begin{equation*}
+\begin{split}
+X = n * \sqrt[5]{\frac{4*K}{P}}
+\end{split}
+\end{equation*}
+
+这部分 $PE$ 的价值为
+\begin{equation} \label{antswap_hold_value_eth}
+\begin{split}
+X = n * \sqrt[5]{\frac{4*K}{P}} * P * (r + 1)
+\end{split}
+\end{equation}
+
+同理，根据公式\ref{antswap_count_usdt}，可知此时流动性池中的 $USDT$ 的数量是
+\begin{equation*}
+\begin{split}
+Y = \sqrt[5]{\frac{K * P^4}{4^4}}
+\end{split}
+\end{equation*}
+
+则该 \textbf{Liquidity Provider} 对应比例的数量及价值为
+\begin{equation} \label{antswap_hold_value_usdt}
+\begin{split}
+X = n * \sqrt[5]{\frac{K * P^4}{4^4}}
+\end{split}
+\end{equation}
+
+因此，假如该 \textbf{Liquidity Provider} 选择 \textbf{持有Token}，那么在 $PE$ 价格上涨 $r$ 之后，两种Token对应的总价值为（公式\ref{antswap_hold_value_eth} + 公式\ref{antswap_hold_value_usdt}）
+
+\begin{equation} \label{antswap_hold_value}
+\begin{split}
+value = n * \sqrt[5]{\frac{4*K}{P}} * P * (r + 1) + n * \sqrt[5]{\frac{K * P^4}{4^4}} = n * \sqrt[5]{\frac{K * P^4}{4 ^4}} * (4r + 5)
+\end{split}
+\end{equation}
+
+
+\subsubsection*{添加流动性}
+
+当\textbf{Liquidity Provider}初始时向流动性池中以 $4:1$ 的价值比例添加 $(PE, USDT)$。根据公式\ref{antswap_count_eth}可知，此时\textbf{流动性池}中 $PE$ 的数量是
+\begin{equation*}
+\begin{split}
+X = \sqrt[5]{\frac{4*K}{P * (r + 1)}}
+\end{split}
+\end{equation*}
+
+则该 \textbf{Liquidity Provider} 对应比例的数量为
+\begin{equation*}
+\begin{split}
+X = n * \sqrt[5]{\frac{4*K}{P * (r + 1)}}
+\end{split}
+\end{equation*}
+
+这部分 $PE$ 的价值为
+\begin{equation} \label{antswap_exposit_value_eth}
+\begin{split}
+value = n * \sqrt[5]{\frac{4*K}{P * (r + 1)}} * P * (r + 1) = n * \sqrt[5]{4*K * P^4 * (r + 1)^4}
+\end{split}
+\end{equation}
+
+同理，根据公式\ref{antswap_count_usdt}，可知此时流动性池中的 $USDT$ 的数量是
+\begin{equation*}
+\begin{split}
+Y = \sqrt[5]{\frac{K * P^4 * (r + 1)^4}{4^4}}
+\end{split}
+\end{equation*}
+
+则该 \textbf{Liquidity Provider} 对应比例的数量以及价值为
+\begin{equation} \label{antswap_exposit_value_usdt}
+\begin{split}
+value = n * \sqrt[5]{\frac{K * P^4 * (r + 1)^4}{4^4}}
+\end{split}
+\end{equation}
+
+
+因此，假如该 \textbf{Liquidity Provider} 选择 \textbf{添加流动性}，那么在 $PE$ 价格上涨 $r$ 之后，两种Token对应的总价值为（公式\ref{antswap_exposit_value_eth} + 公式\ref{antswap_exposit_value_usdt}）
+
+\begin{equation} \label{antswap_exposit_value}
+\begin{split}
+n * \sqrt[5]{4*K * P^4 * (r + 1)^4} + n * \sqrt[5]{\frac{K * P^4 * (r + 1)^4}{4^4}} = 5n * \sqrt[5]{\frac{K * P^4 * (r + 1)^4}{4^4}}
+\end{split}
+\end{equation}
+
+
+综上，由公式 \ref{antswap_hold_value} - 公式\ref{antswap_exposit_value} 可得 \textbf{无常损失} 为
+
+\begin{equation} \label{antswap_impermanent_loss}
+\begin{split}
+loss = n * \sqrt[5]{\frac{K * P^4}{4 ^4}} * (4r + 5) - 5n * \sqrt[5]{\frac{K * P^4 * (r + 1)^4}{4^4}} 
+= n * \sqrt[5]{\frac{K * P^4}{4^4}} * (4r + 5 - 5 * (r + 1)^\frac{4}{5})
+\end{split}
+\end{equation}
+
+即 \textbf{无常损失率} 为（公式\ref{antswap_impermanent_loss} / 公式\ref{antswap_hold_value}）
+
+\begin{equation} \label{antswap_impermanent_loss_rate}
+\begin{split}
+f(r) = \frac{n * \sqrt[5]{\frac{K * P^4}{4^4}} * (4r + 5 - 5 * (r + 1)^\frac{4}{5})}{n * \sqrt[5]{\frac{K * P^4}{4 ^4}} * (4r + 5)} = \frac{4r + 5 - 5 * (r + 1)^\frac{4}{5}} {4r + 5}
+\end{split}
+\end{equation}
+
+以上可见，对于依赖于 \textbf{AMM} 机制的Swap，其 \textbf{无常损失率} 仅取决于价格增长率。
+
+结合 \textbf{Uniswap} 和 \textbf{AntSwap} 的无常损失率，可以对比出两者的无常损失曲线如下图，其中横坐标为代币价格上涨的比率，纵坐标为无常损失率。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/3.png}
+\caption{\label{fig}Uniswap和EquitySwap(AntSwap)的无常损失对比图.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/4.png}
+\caption{\label{fig} Uniswap和EquitySwap(AntSwap)的无常损失对比图（细节图）.}
+\end{figure}
+
+\subsection{更大的交易深度}
+
+假设：初始添加流动性$(Token, USDT)$时的$USDT$的数量一致，且$Token$的价格一致。
+
+% \textbf{AntSwap}的数学模型（公式\ref{ant_swap}）意味着：随着价格上涨至$P$，\textbf{AntSwap}流动性池中的USDT的数量
+
+% \begin{equation}
+% \begin{split}
+% Y_4 = Y_0 * P^\frac{4}{5}
+% \end{split}
+% \end{equation}
+
+% 根据公式\ref{uniswap_antswap_price_relative}
+
+
+% 整个流动性池的\textbf{市值}对应\textbf{初始底池}拥有更好的弹性空间。
+
+% 参数约定：$Y_0$表示用$USDT$计价的底池的初始价值， $N$ 表示流动性池的现有市值和初始市值的比值。
+
+% \begin{equation*}
+% \begin{split}
+% N = \frac{Y_0 * P}{Y}
+% \end{split}
+% \end{equation*}
+
+% 对于 \textbf{Uniswap}，当\textbf{Liquidity Provider}初始时向流动性池中以 $1:1$ 的价值比例添加 $(PE, USDT)$。则有
+
+% \begin{equation*}
+% \begin{split}
+% N = \frac{Y_0 * P}{Y} = P ^ \frac{1}{2} = M , f(M) = M
+% \end{split}
+% \end{equation*}
+
+% 对于 \textbf{AntSwap}，当\textbf{Liquidity Provider}初始时向流动性池中以 $4:1$ 的价值比例添加 $(PE, USDT)$。则有
+
+% \begin{equation*}
+% \begin{split}
+% N = \frac{Y_0 * P}{Y} = P ^ \frac{1}{5} = M ^ \frac{1}{4}, f(M) = M ^ \frac{1}{4}
+% \end{split}
+% \end{equation*}
+
+根据公式\ref{uniswap_antswap_price_relative_y}当价格为 $P$ 时，\textbf{AntSwap} 相对于 \textbf{Uniswap} 的\textbf{USDT} 倍数为
+\begin{equation*}
+\begin{split}
+f(P) =  P ^ \frac{3}{10} 
+\end{split}
+\end{equation*}
+
+可得下图。其中，横坐标为Token单价，纵坐标为AntSwap中USDT和Uniswap中USDT的比值。
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/1.png}
+\caption{\label{fig}AntSwap和Uniswap中USDT的比值随价格变化的曲线.}
+\end{figure}
+
+
+根据公式\ref{uniswap_antswap_price_relative_x}当价格为 $P$ 时， \textbf{AntSwap} 相对于 \textbf{Uniswap} 的\textbf{代币} 倍数为
+
+\begin{equation*}
+\begin{split}
+f(P) =  4 * P ^ \frac{3}{10} 
+\end{split}
+\end{equation*}
+
+可得下图。其中，横坐标为Token单价，纵坐标为AntSwap中Token和Uniswap中Token数量的比值。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/2.png}
+\caption{\label{fig}AntSwap和Uniswap中USDT数量的比值随价格变化的曲线..}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/token.png}
+\caption{\label{fig}AntSwap和Uniswap中Token的比值随价格变化的曲线.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/usdt.png}
+\caption{\label{fig}AntSwap和Uniswap中Token的比值随价格变化的曲线.}
+\end{figure}
+
+注：横坐标——价格增长的倍数(当前价格/初始价格)；纵坐标——Swap价值增长的倍数（当前价值/初始价值） 
+
+\subsection{更多的交易收益}
+
+更多的交易收益是指：相比于Uniswap \textbf{AntSwap}能够实现以相同的代币兑换更多的 $USDT$，以相同的 $USDT$ 能兑换更多的代币。简而言之 \textbf{买的多卖的多}。
+
+相对于传统DEX，以相同数量的USDT和相同的币价添加流动性后 ，在后续发展过程中任何币价一样的情况下，EquitySwap能够实现以相同数量的USDT兑换更多的代币，以相同数量的代币兑换更多的USDT。
+
+对于基于 \textbf{AMM} 模型的Swap，即符合通用数学模型
+\begin{equation} \label{common_amm}
+\begin{split}
+X * Y^\frac{b}{a} = K
+\end{split}
+\end{equation}
+
+
+根据 \textbf{Uniswap}的价格公式\ref{uniswap_price}
+\begin{equation*}
+\begin{split}
+P = \frac{Y}{X} = \frac{K}{X^2}
+\end{split}
+\end{equation*}
+
+再根据 \textbf{AntSwap}的价格公式 \ref{antswap_price}
+\begin{equation*}
+\begin{split}
+P = \frac{4 * Y}{X} = \frac{4 * K}{X^5}
+\end{split}
+\end{equation*}
+
+\subsubsection{买的多}
+
+再次提示，本文以 $(PE, USDT)$ 为交易对来说明。因此，在 \textbf{Uniswap} 和 \textbf{AntSwap} 中添加的 $X$ 为 $PE$，添加的 $Y$ 为 $USDT$，当USDT数量相同时，即 $Y_4 = Y_1 = Y$时，且 $P_1 = P_2$ 时，$4 * X_1 = X_4$。
+
+场景假设：某用户用相同数量的 $USDT$ 兑换 $PE$，即 $\Delta Y$ = $\Delta Y_1$ = $\Delta Y_4$时，求 $\Delta X$
+
+即有
+\begin{equation*}
+\begin{split}
+(X - \Delta X)(Y + \Delta Y)^\frac{b}{a} = K
+\end{split}
+\end{equation*}
+
+结合公式\ref{common_amm}，得
+\begin{equation*}
+\begin{split}
+\Delta X = X * (1 - (\frac{Y}{Y+\Delta Y})^\frac{b}{a})
+\end{split}
+\end{equation*}
+
+对于 \textbf{Uniswap}，当\textbf{Liquidity Provider}初始时向流动性池中以 $1:1$ 的价值比例添加 $(PE, USDT)$。则有
+\begin{equation*}
+\begin{split}
+\Delta X_1 = X_1 * (1 - \frac{Y}{Y+\Delta Y})
+\end{split}
+\end{equation*}
+
+对于 \textbf{AntSwap}，当\textbf{Liquidity Provider}初始时向流动性池中以 $4:1$ 的价值比例添加 $(PE, USDT)$。则有
+\begin{equation*}
+\begin{split}
+\Delta X_4 = X_4 * (1 - (\frac{Y}{Y+\Delta Y})^\frac{1}{4}) = 4 * X_1 * (1 - (\frac{Y}{Y+\Delta Y})^\frac{1}{4})
+\end{split}
+\end{equation*}
+
+令 $\Delta X_1 = \Delta X_4$，同时令 $\frac{Y}{Y+\Delta Y} = T$ 即有
+\begin{equation*}
+\begin{split}
+X_1 * (1 - T) = 4 * X_1 * (1 - T^\frac{1}{4})
+\end{split}
+\end{equation*}
+
+解得 $T = 1$，此时 $\Delta Y = 0$，因此舍去。
+即当 $\Delta Y > 0$ 时，$\Delta X_4 > X_1$，即意味着
+
+用同样数量的 $USDT$ 在 \textbf{AntSwap} 中可以比 \textbf{Uniswap} 买入更多的 $PE$。
+
+因此，可得\textbf{AntSwap} 相较于\textbf{Uniswap} 可以多得到的 $PE$ 的倍率为 
+\begin{equation*}
+\begin{split}
+\frac{\Delta X_4}{\Delta X_1} - 1 = \frac{4 * (1- (\frac{Y}{Y + \Delta Y})^\frac{1}{4})}{1-\frac{Y}{Y + \Delta Y}} - 1
+\end{split}
+\end{equation*}
+
+其曲线如下图，其中横坐标为USDT的数量，纵坐标为AntSwap相对于Uniswap多兑换的PE数量的倍率
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/6.png}
+\caption{\label{fig}当100万USDT添加流动性，定价一样时，USDT能兑换的代币能多兑换的倍率（最高可多3倍）.}
+\end{figure}
+
+\subsubsection{卖的多}
+
+场景假设：某用户兑换相同数量的 $PE$，即流动性池中 $\Delta X$ = $\Delta X_1$ = $\Delta X_4$时，求 $\Delta Y$
+
+即有
+\begin{equation*}
+\begin{split}
+(X + \Delta X)(Y - \Delta Y)^\frac{b}{a} = K
+\end{split}
+\end{equation*}
+
+结合公式\ref{common_amm} 得
+\begin{equation*}
+\begin{split}
+\Delta Y = Y * (1 - (\frac{X}{X+\Delta X})^\frac{b}{a})
+\end{split}
+\end{equation*}
+
+对于 \textbf{Uniswap}，当\textbf{Liquidity Provider}初始时向流动性池中以 $1:1$ 的价值比例添加 $(PE, USDT)$。 则有
+\begin{equation*}
+\begin{split}
+\Delta Y_1 = Y * (1 - \frac{X_1}{X_1+\Delta X})
+\end{split}
+\end{equation*}
+
+对于 \textbf{AntSwap}，当\textbf{Liquidity Provider}初始时向流动性池中以 $4:1$ 的价值比例添加 $(PE, USDT)$。则有
+\begin{equation*}
+\begin{split}
+\Delta Y_4 = Y * (1 - (\frac{X_4}{X_4+\Delta X_4})^4) = Y * (1 - (\frac{4X_1}{4X_1+\Delta X})^4)
+\end{split}
+\end{equation*}
+
+当 $\Delta X > 0$ 时，$(\frac{X_4}{X_4+\Delta X_4})^4 < \frac{X_1}{X_1+\Delta X}$，即 $\Delta Y_4 > \Delta Y_1$。即意味着
+
+卖出同样数量的 $PE$时， 在 \textbf{AntSwap} 中可以比 \textbf{Uniswap} 得到更多的 $USDT$。
+
+因此，可得\textbf{AntSwap} 相较于\textbf{Uniswap} 可以多得到的 $USDT$ 的倍率为 
+\begin{equation*}
+\begin{split}
+\frac{\Delta Y_4}{\Delta Y_1} - 1 = \frac{1- (\frac{4X_1}{4X_1 + \Delta X})^4}{1-\frac{X_1}{X_1 + \Delta X}} - 1
+\end{split}
+\end{equation*}
+
+
+其曲线如下，其横坐标的代币的数量，纵坐标的多兑换的USDT的数量的倍率。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{./img/5.png}
+\caption{\label{fig}当100万USDT添加流动性，定价一样时，代币能兑换USDT能多兑换的倍率}
+\end{figure}
+
+由图4和图5可知，当代币价格上涨之后，AntSwap中的USDT数量可达Uniswap中Swap数量的数倍到上百倍。当价格上涨一定幅度时，对应的相同数量的代币能多兑换的USDT的倍率为数倍甚至上百倍。
+
+
+% 由图6及图3图4可知：
+
+% \begin{figure}[h]
+% \centering
+% \includegraphics[width=0.6\textwidth]{./img/4.png}
+% \caption{\label{fig}Traditional Production Relationship Diagram.}
+% \end{figure}
+
+% 注：横坐标——价格增长的倍数(当前价格/初始价格)；纵坐标——Swap价值增长的倍数（当前价值/初始价值） 
+
+% % 由图\figure{fig}[h]
+% \begin{itemize}
+%   \item 曲线总体平滑延伸的增长；
+
+%   \item 在某个时刻（以$C$点为例）：当AntSwap中代币价格增长为100倍时，该AntSwap的总价值自动增长为初始状态的$3.98$倍；
+
+%   \item 随着代币价格的上涨，AntSwap的总价值的增长会越来越高
+% \end{itemize}
+
+\section{技术特性——EquitySwap Pro}
+很多用户长期持有BTC、ETH、BNB等主流币，这部分代币并未产生足够的价值。原因有
+\begin{itemize}
+  \item \textbf{对CEX的担忧}：中心化的交易所的 \textbf{暴雷} 可能会导致用户血本无归；
+  \item \textbf{对DEX的不满}：目前常用 $DEX$ 的无常损失太高，用户添加流动性后，即便在“牛市”也可能会有不同程度的\textbf{亏损}；
+\end{itemize}
+
+为了让持有诸如 $BTC$、$ETH$、$BNB$ 等主流币的用户，既能在“牛市”享受到价格上涨的红利，又能享受到不错的交易费率收益\footnote{一般链上流动性较好的交易对的每日交易总额可达底池的$1-10$倍。对应的年化收入可达$36.5\% ~ 365\%$。}（如 $0.1\%$）。
+
+在平衡了 \textbf{较低的无常损失} 和 \textbf{足够的资金利用率} 之后，\textbf{EquitySwap}提供了$3-in-1$ 的\textbf{Pro} 版以适应 \textbf{传统主流币}。即公式\ref{moon_swap}，公式\ref{earth_swap}，公式\ref{sun_swap}。
+
+类比 \textbf{Air中AntSwap}\ref{antswap_impermanent_loss_rate}的推导过程可知，
+
+公式\ref{moon_swap}的 \textbf{无常损失率}
+\begin{equation}
+\begin{split}
+loss = 1 - 9 * \frac{(X + 1)^\frac{8}{9}}{8X + 9}
+\end{split}
+\end{equation}
+
+公式\ref{earth_swap}的 \textbf{无常损失率}
+\begin{equation}
+\begin{split}
+loss = 1 - 17 * \frac{(X + 1)^\frac{16}{17}}{16X + 17}
+\end{split}
+\end{equation}
+
+公式\ref{sun_swap}的 \textbf{无常损失率}
+\begin{equation}
+\begin{split}
+loss = 1 - 33 * \frac{(X + 1)^\frac{32}{33}}{32X + 33}
+\end{split}
+\end{equation}
+
+下图中横坐标为代币价格上涨的比率，纵坐标为无常损失率。其中绿色曲线，紫色曲线，红色曲线分别表示SunSwap、EarthSwap、Uniswap的无常损失曲线。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.35\textwidth]{./img/10.png}
+\caption{\label{fig}当价格涨为原来的n倍之后撤回流动性时AntSwap的价值是Uniswap的倍数}
+\end{figure}
+
+下面结合曲线图解析。假设添加流动性的成本一致（即代币和USDT的总价值一致），其中横坐标为代币价格上涨到的倍数，纵坐标为EarthSwap/SunSwap和Uniswap中流动性价值的比值。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.35\textwidth]{./img/7.png}
+\caption{\label{fig}当价格涨为原来的n倍之后撤回流动性时EarthSwap的价值是Uniswap的倍数}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.35\textwidth]{./img/8.png}
+\caption{\label{fig}当价格涨为原来的n倍之后撤回流动性时SunSwap的价值是Uniswap的倍数}
+\end{figure}
+
+由上图可知。
+假设BTC的现价为3万美元，以0.5个BTC和1.5万USDT(总成本3万USDT)，
+在Uniswap添加流动性，当BTC价格上涨到12万USDT时撤回流动性，用户能获得的总价值为6万USDT，若用户持币可获得7.5万USDT。无偿损失为20\%；
+用户以同样的成本(3万USDT)在EquitySwap添加流动性，则可以得到11.04-11.52万美元(无常损失为$1.8\%-3.6\%$)，
+因此，用户会比在常规DEX中添加流动性获得的价值多$84\%-92\%$(5.04-5.52万美元)。
+
+假设ETH现价为2,000USDT，若以10个ETH和2万USDT(总成本4万USDT)在Uniswap添加流动性，当ETH价格上涨到2万USDT时撤回流动性，用户能获得总价值约为12.65万USDT，若用户持币可获得22万USDT。无偿损失为42.5\%。而以同样成本(4万USDT成本)在EquitySwap添加流动性，则可以得到34.91万-37.32万USDT(无常损失为$4.1\%-7.8\%$)，比在常规DEX中添加流动性获得的价值多$175.96\%-195.02\%$(22.26万-24.67万USDT)。
+
+\section{总结}
+
+\textbf{EquitySwap(以AntSwap为例)} 相比于常规的 \textbf{Swap(以Uniswap为例)}，拥有很大的技术优势。
+
+\begin{itemize}
+  \item \textbf{更大的交易深度}：交易过程中自动增加交易深度(流动性)，项目上涨一定倍数之后交易深度可达Uniswap的数十倍到上百倍。让项目可以独立在DEX上发展壮大，摆脱对中心化交易所的依赖。
+  \item \textbf{更小的无常损失}：解决了无常损失过高添加流动性意愿低的问题，无常损失相对于Uniswap大幅降低，这意味着有更多人愿意添加流动性，对应的Swap和公链容易获得更高的TVL。
+  \item \textbf{更多的交易收益}：相同数量的USDT兑换的代币更多，相同的代币兑换的USDT更多。用户选择意愿更强。
+  \item \textbf{更全面的项目覆盖}：既能覆盖新项目的上市需求，也能激活\textbf{沉睡}的主流项目或在其它DEX已经添加过流动性的项目。
+\end{itemize}
+
+\section{社区激励}
+EquitySwap适用于新上线项目的三合一DEX费率为$0.3\%$。其使用方式如下
+
+\begin{itemize}
+  \item $0.15\%$用于奖励流动性提供者；
+
+  \item $0.05\%$用于分发劳动收入和股权收入；
+
+  \item $0.10\%$在扣除基金会的日常运转成本之外的所有利润都归社区所有；
+
+  \begin{itemize}
+    \item 前24个月，利润的$70\%$用于分红或回购，$20\%$归于建设团队，$10\%$用于基金储备；
+    \item 24个月之后，利润的$80\%$用于分红或回购，$20\%$用于基金储备\footnote{储备资金用于公益研发或投资，若要动用需要通过社区提案}；
+  \end{itemize}
+\end{itemize}
+
+% 引用
+% \bibliographystyle{IEEEtran}
+% \small{
+%   \bibliography{bibtex}
+% }
+\end{document}
