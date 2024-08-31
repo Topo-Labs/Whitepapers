@@ -1,2 +1,2 @@
 # Whitepapers
-All whitepapers belongs to PeopleEquity
+All whitepapers belongs to Coinfair
